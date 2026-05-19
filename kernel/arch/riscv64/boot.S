@@ -3,12 +3,6 @@
 .type _start, @function
 
 _start:
-    /*
-     * OpenSBI transfers control to the supervisor kernel with:
-     *   a0 = hart ID
-     *   a1 = device tree blob physical address
-     */
-
 .option push
 .option norelax
     la gp, __global_pointer$

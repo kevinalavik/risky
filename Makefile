@@ -32,7 +32,7 @@ run: kernel
 		-machine virt \
 		-m 128M \
 		-serial stdio \
-		-bios default \
+		-bios none \
 		-device ramfb \
 		-kernel $(KERNEL_ELF)
 

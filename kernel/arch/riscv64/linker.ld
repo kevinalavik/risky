@@ -3,7 +3,7 @@ ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x80200000;
+    . = 0x80000000;
     __kernel_start = .;
 
     .text : ALIGN(4K) {
