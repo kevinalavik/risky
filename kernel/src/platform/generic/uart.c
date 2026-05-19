@@ -3,6 +3,7 @@
 #include <cpu.h>
 #include <lib/printk.h>
 #include <mm/paging.h>
+#include <mmio_defaults.h>
 
 #define UART_RBR 0U
 #define UART_THR 0U
@@ -17,8 +18,6 @@
 #define UART_LSR_TX_EMPTY 0x20U
 #define UART_LCR_DLAB 0x80U
 
-#define UART_QEMU_VIRT_BASE 0x10000000UL
-#define UART_QEMU_VIRT_SIZE 0x100UL
 #define UART_PATH_MAX 256U
 
 static const char *const uart_compatibles[] = {
@@ -130,11 +129,11 @@ bool uart_init(void)
 	uart_ready = false;
 
 	if (!uart_find_port(&uart0)) {
-		uart0.base = UART_QEMU_VIRT_BASE;
-		uart0.size = UART_QEMU_VIRT_SIZE;
+		uart0.base = UART_DEFAULT_BASE;
+		uart0.size = UART_DEFAULT_SIZE;
 		uart0.reg_shift = 0;
 		uart0.reg_io_width = 1;
-		klog("uart: using qemu virt fallback uart at phys=0x%llx\n",
+		klog("uart: using default fallback uart at phys=0x%llx\n",
 			 (unsigned long long)uart0.base);
 	}
 
