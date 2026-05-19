@@ -47,7 +47,7 @@ static void pfndb_reserve_storage(struct limine_memmap_response *memmap)
 		return;
 	}
 
-	klog("pfndb: no usable memmap region large enough for db size=0x%llx\n",
+	klog("pfndb: no usable memmap region large enough for db size=0x%llx",
 		 (unsigned long long)size);
 }
 
@@ -72,19 +72,19 @@ void pfndb_mark_range(uint64_t base, uint64_t length, uint32_t flags)
 void pfndb_init(struct limine_memmap_response *memmap)
 {
 	if (memmap == NULL) {
-		klog("pfndb: missing Limine memmap response\n");
+		klog("pfndb: missing Limine memmap response");
 		return;
 	}
 
 	if (hhdm_request.response == NULL) {
-		klog("pfndb: missing Limine hhdm response\n");
+		klog("pfndb: missing Limine hhdm response");
 		return;
 	}
 
 	pfndb_calc_max_pfn(memmap);
 	pfndb_reserve_storage(memmap);
 	if (g_pfndb_phys == 0) {
-		klog("pfndb: failed to reserve pfndb storage\n");
+		klog("pfndb: failed to reserve pfndb storage");
 		return;
 	}
 
@@ -101,9 +101,8 @@ void pfndb_init(struct limine_memmap_response *memmap)
 			pfndb_mark_range(entry->base, entry->length, PAGE_FREE);
 	}
 
-	klog("pfndb: pages=%llu db_phys=0x%llx db_size=0x%llx\n",
-		 (unsigned long long)(g_max_pfn + 1U),
-		 (unsigned long long)g_pfndb_phys,
+	klog("pfndb: pages=%llu db_phys=0x%llx db_size=0x%llx",
+		 (unsigned long long)(g_max_pfn + 1U), (unsigned long long)g_pfndb_phys,
 		 (unsigned long long)pfndb_storage_size());
 }
 

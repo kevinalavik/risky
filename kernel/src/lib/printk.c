@@ -272,7 +272,7 @@ int kprintf(const char *fmt, ...)
 
 int vklog(const char *fmt, va_list args)
 {
-	return vprintk_internal(true, fmt, args);
+	return vprintk_internal(true, fmt, args) + kprintf("\n");
 }
 
 int klog(const char *fmt, ...)

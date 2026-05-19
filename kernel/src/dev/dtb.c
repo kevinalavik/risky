@@ -27,18 +27,18 @@ bool dtb_init(const struct limine_dtb_response *response)
 	memset(&dtb_fdt, 0, sizeof(dtb_fdt));
 
 	if (response == NULL) {
-		klog("dtb: missing Limine dtb response\n");
+		klog("dtb: missing Limine dtb response");
 		return false;
 	}
 
 	if (response->dtb_ptr == NULL) {
-		klog("dtb: Limine dtb_ptr is NULL\n");
+		klog("dtb: Limine dtb_ptr is NULL");
 		return false;
 	}
 
 	dtb_ready = fdt_init(&dtb_fdt, response->dtb_ptr);
 	if (!dtb_ready) {
-		klog("dtb: invalid fdt blob at %p\n", response->dtb_ptr);
+		klog("dtb: invalid fdt blob at %p", response->dtb_ptr);
 	}
 
 	return dtb_ready;

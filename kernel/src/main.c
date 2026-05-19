@@ -1,4 +1,3 @@
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <limine.h>
@@ -30,8 +29,6 @@ void printk_putc(char c)
 
 void kmain(void)
 {
-	bool dtb_ok;
-
 	if (!LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision)) {
 		hlt();
 	}
@@ -39,31 +36,31 @@ void kmain(void)
 	ktime_init();
 	pfndb_init(memmap_request.response);
 	if (!pmm_init()) {
-		klog("boot: pmm_init failed\n");
+		klog("boot: pmm_init failed");
 		hlt();
 	}
 
 	if (!dtb_init(dtb_request.response))
-		klog("boot: dtb_init failed\n");
+		klog("boot: dtb_init failed");
 
 	if (!paging_early_init()) {
-		klog("boot: paging_early_init failed\n");
+		klog("boot: paging_early_init failed");
 		hlt();
 	}
 
 	if (!uart_init()) {
-		klog("boot: uart_init failed\n");
+		klog("boot: uart_init failed");
 		hlt();
 	}
 
 	if (!paging_init()) {
-		klog("boot: paging_init failed\n");
+		klog("boot: paging_init failed");
 		hlt();
 	}
 
 	if (framebuffer_request.response == NULL ||
 		framebuffer_request.response->framebuffer_count < 1) {
-		klog("early: failed to get framebuffer, no ramfb?\n");
+		klog("early: failed to get framebuffer, no ramfb?");
 	} else {
 		struct limine_framebuffer *fb =
 			framebuffer_request.response->framebuffers[0];
@@ -75,9 +72,13 @@ void kmain(void)
 			NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 0, 0, 0, 0);
 
 		if (g_ft_ctx == NULL)
-			klog("early: failed to initialize flanterm\n");
+			klog("early: failed to initialize flanterm");
 	}
 
-	klog("early: Hello, World!\n");
+	klog("early: Hello, World!");
+	int *a = pmm_alloc(1);
+	klog("test: allocated single page: %p", a);
+	*a = 42;
+	klog("test: value after write: %d", *a);
 	hlt();
 }

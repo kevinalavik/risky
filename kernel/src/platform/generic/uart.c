@@ -101,12 +101,12 @@ static bool uart_find_port(struct uart_port *port)
 	}
 
 	if (!found)
-		klog("uart: failed to find uart in dtb, using fallback\n");
+		klog("uart: failed to find uart in dtb, using fallback");
 	if (!found)
 		return false;
 
 	if (!dtb_get_reg(&node, 0, &port->base, &size) || size == 0) {
-		klog("uart: failed to read uart reg from dtb\n");
+		klog("uart: failed to read uart reg from dtb");
 		return false;
 	}
 
@@ -117,7 +117,7 @@ static bool uart_find_port(struct uart_port *port)
 	(void)dtb_get_u32(&node, "reg-shift", &port->reg_shift);
 	if (dtb_get_u32(&node, "reg-io-width", &port->reg_io_width) &&
 		port->reg_io_width != 1U && port->reg_io_width != 4U) {
-		klog("uart: unsupported reg-io-width=%u\n", port->reg_io_width);
+		klog("uart: unsupported reg-io-width=%u", port->reg_io_width);
 		return false;
 	}
 
@@ -133,12 +133,12 @@ bool uart_init(void)
 		uart0.size = UART_DEFAULT_SIZE;
 		uart0.reg_shift = 0;
 		uart0.reg_io_width = 1;
-		klog("uart: using default fallback uart at phys=0x%llx\n",
+		klog("uart: using default fallback uart at phys=0x%llx",
 			 (unsigned long long)uart0.base);
 	}
 
 	if (!paging_map_mmio(uart0.base, uart0.size)) {
-		klog("uart: failed to map mmio phys=0x%llx size=0x%llx\n",
+		klog("uart: failed to map mmio phys=0x%llx size=0x%llx",
 			 (unsigned long long)uart0.base, (unsigned long long)uart0.size);
 		return false;
 	}
@@ -150,7 +150,7 @@ bool uart_init(void)
 	uart_write_reg(UART_LCR, 0x03);
 	uart_write_reg(UART_FCR, 0x07);
 	uart_ready = true;
-	klog("uart: init ok phys=0x%llx shift=%u width=%u\n",
+	klog("uart: init ok phys=0x%llx shift=%u width=%u",
 		 (unsigned long long)uart0.base, uart0.reg_shift, uart0.reg_io_width);
 
 	while ((uart_read_reg(UART_LSR) & UART_LSR_RX_READY) != 0U)

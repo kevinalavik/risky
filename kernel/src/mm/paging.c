@@ -45,11 +45,11 @@ extern char __bss_end[];
 #define PAGING_PROT_RXG (PAGING_PROT_RX | PAGING_FLAG_GLOBAL)
 #define PAGING_PROT_RG (PAGING_FLAG_READ | PAGING_FLAG_GLOBAL)
 
-#define PAGING_KERNEL_SEGMENT_LIST(X)                                           \
-	X("limine requests", __limine_requests_start, __text_start,            \
-	  PAGING_PROT_RWG)                                                     \
-	X("text", __text_start, __text_end, PAGING_PROT_RXG)                   \
-	X("rodata", __rodata_start, __rodata_end, PAGING_PROT_RG)              \
+#define PAGING_KERNEL_SEGMENT_LIST(X)                           \
+	X("limine requests", __limine_requests_start, __text_start, \
+	  PAGING_PROT_RWG)                                          \
+	X("text", __text_start, __text_end, PAGING_PROT_RXG)        \
+	X("rodata", __rodata_start, __rodata_end, PAGING_PROT_RG)   \
 	X("data/bss", __data_start, __bss_end, PAGING_PROT_RWG)
 
 static uintptr_t g_root_phys;
@@ -61,8 +61,7 @@ static size_t g_early_pt_pool_used;
 static unsigned paging_satp_levels(uint64_t satp);
 static inline uintptr_t paging_level_shift(unsigned level);
 static inline uintptr_t paging_level_block_size(unsigned level);
-static inline uintptr_t paging_level_index(uintptr_t virt_addr,
-											 unsigned level);
+static inline uintptr_t paging_level_index(uintptr_t virt_addr, unsigned level);
 
 static bool paging_setup_root(void)
 {
@@ -181,7 +180,7 @@ static uint64_t *paging_alloc_table(void)
 
 	if (g_early_pt_pool_used >=
 		sizeof(g_early_pt_pool) / sizeof(g_early_pt_pool[0])) {
-		klog("paging: failed to allocate page-table page\n");
+		klog("paging: failed to allocate page-table page");
 		return NULL;
 	}
 
@@ -217,7 +216,7 @@ static bool paging_map_one(uint64_t *root, uintptr_t virt_addr,
 				return true;
 
 			klog(
-				"paging: conflicting leaf virt=0x%llx phys=0x%llx level=%u entry=0x%llx\n",
+				"paging: conflicting leaf virt=0x%llx phys=0x%llx level=%u entry=0x%llx",
 				(unsigned long long)virt_addr, (unsigned long long)phys_addr,
 				level, (unsigned long long)entry);
 			return false;
@@ -273,7 +272,7 @@ static bool paging_map_hhdm(void)
 	struct limine_memmap_response *memmap = memmap_request.response;
 
 	if (memmap == NULL || hhdm_request.response == NULL) {
-		klog("paging: missing memmap or hhdm response for hhdm map\n");
+		klog("paging: missing memmap or hhdm response for hhdm map");
 		return false;
 	}
 
@@ -288,7 +287,7 @@ static bool paging_map_hhdm(void)
 
 		if (!paging_map_range((uintptr_t)PHYS_TO_VIRT(phys_start), phys_start,
 							  phys_end - phys_start, PAGING_PROT_RWG)) {
-			klog("paging: failed to map hhdm phys=[0x%llx,0x%llx)\n",
+			klog("paging: failed to map hhdm phys=[0x%llx,0x%llx)",
 				 (unsigned long long)phys_start, (unsigned long long)phys_end);
 			return false;
 		}
@@ -307,16 +306,16 @@ static bool paging_map_kernel_segments(void)
 	};
 
 	static const struct paging_segment segments[] = {
-#define PAGING_SEGMENT_ENTRY(name, start, end, flags)                           \
-		{ (name), (uintptr_t)(start), (uintptr_t)(end), (flags) },
+#define PAGING_SEGMENT_ENTRY(name, start, end, flags) \
+	{ (name), (uintptr_t)(start), (uintptr_t)(end), (flags) },
 		PAGING_KERNEL_SEGMENT_LIST(PAGING_SEGMENT_ENTRY)
 #undef PAGING_SEGMENT_ENTRY
 	};
 
 	for (size_t i = 0; i < sizeof(segments) / sizeof(segments[0]); i++) {
 		if (!paging_map_kernel_segment(segments[i].start, segments[i].end,
-										 segments[i].flags)) {
-			klog("paging: failed to map %s segment\n", segments[i].name);
+									   segments[i].flags)) {
+			klog("paging: failed to map %s segment", segments[i].name);
 			return false;
 		}
 	}
@@ -329,12 +328,12 @@ bool paging_early_init(void)
 	g_early_pt_pool_used = 0;
 
 	if (!paging_setup_root()) {
-		klog("paging: early init failed to setup root\n");
+		klog("paging: early init failed to setup root");
 		return false;
 	}
 
 	if (hhdm_request.response == NULL) {
-		klog("paging: missing hhdm response for early init\n");
+		klog("paging: missing hhdm response for early init");
 		return false;
 	}
 
@@ -350,7 +349,7 @@ bool paging_init(void)
 		executable_address_request.response == NULL) {
 		uint64_t satp = csr_read(satp);
 		klog(
-			"paging: init failed satp=0x%llx levels=%u root=0x%llx hhdm=%p memmap=%p exec=%p\n",
+			"paging: init failed satp=0x%llx levels=%u root=0x%llx hhdm=%p memmap=%p exec=%p",
 			(unsigned long long)satp, g_levels, (unsigned long long)g_root_phys,
 			hhdm_request.response, memmap_request.response,
 			executable_address_request.response);
@@ -365,7 +364,7 @@ bool paging_init(void)
 	}
 
 	cpu_sfence_vma_all();
-	klog("paging: init ok root=0x%llx levels=%u\n",
+	klog("paging: init ok root=0x%llx levels=%u",
 		 (unsigned long long)g_root_phys, g_levels);
 	return true;
 }
@@ -374,7 +373,7 @@ bool paging_map_page(uintptr_t virt_addr, uintptr_t phys_addr, uint64_t flags)
 {
 	if ((virt_addr & (PAGE_SIZE - 1UL)) != 0 ||
 		(phys_addr & (PAGE_SIZE - 1UL)) != 0 || g_root_phys == 0) {
-		klog("paging: bad page map virt=0x%llx phys=0x%llx root=0x%llx\n",
+		klog("paging: bad page map virt=0x%llx phys=0x%llx root=0x%llx",
 			 (unsigned long long)virt_addr, (unsigned long long)phys_addr,
 			 (unsigned long long)g_root_phys);
 		return false;
@@ -409,7 +408,7 @@ bool paging_map_mmio(uintptr_t phys_addr, uint64_t size)
 	uintptr_t end = (uintptr_t)PAGE_ALIGN_UP(phys_addr + size);
 
 	if (size == 0) {
-		klog("paging: refusing zero-sized mmio map for phys=0x%llx\n",
+		klog("paging: refusing zero-sized mmio map for phys=0x%llx",
 			 (unsigned long long)phys_addr);
 		return false;
 	}

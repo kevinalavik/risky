@@ -84,7 +84,7 @@ bool pmm_init(void)
 	page_t *page;
 
 	if (pfndb_get_db() == NULL) {
-		klog("pmm: pfndb is not initialized\n");
+		klog("pmm: pfndb is not initialized");
 		return false;
 	}
 
@@ -117,7 +117,7 @@ bool pmm_init(void)
 		pmm_free_block(page);
 	}
 
-	klog("pmm: total=%llu free=%llu\n", (unsigned long long)g_total_pages,
+	klog("pmm: total=%llu free=%llu", (unsigned long long)g_total_pages,
 		 (unsigned long long)g_free_pages);
 	g_pmm_ready = true;
 
@@ -135,7 +135,7 @@ page_t *pmm_alloc(uint8_t order)
 		return NULL;
 
 	if (order >= PMM_MAX_ORDER) {
-		klog("pmm: alloc order %u out of range\n", order);
+		klog("pmm: alloc order %u out of range", order);
 		return NULL;
 	}
 
@@ -160,7 +160,7 @@ page_t *pmm_alloc(uint8_t order)
 		return page;
 	}
 
-	klog("pmm: alloc failed for order %u\n", order);
+	klog("pmm: alloc failed for order %u", order);
 	return NULL;
 }
 
@@ -172,23 +172,23 @@ page_t *pmm_alloc_page(void)
 void pmm_free(page_t *page)
 {
 	if (!g_pmm_ready) {
-		klog("pmm: refusing free before init\n");
+		klog("pmm: refusing free before init");
 		return;
 	}
 
 	if (page == NULL) {
-		klog("pmm: ignoring free of NULL page\n");
+		klog("pmm: ignoring free of NULL page");
 		return;
 	}
 
 	if (PageReserved(page)) {
-		klog("pmm: refusing to free reserved page pfn=0x%llx\n",
+		klog("pmm: refusing to free reserved page pfn=0x%llx",
 			 (unsigned long long)page_to_pfn(page));
 		return;
 	}
 
 	if (PageFree(page)) {
-		klog("pmm: refusing double free of pfn=0x%llx\n",
+		klog("pmm: refusing double free of pfn=0x%llx",
 			 (unsigned long long)page_to_pfn(page));
 		return;
 	}
