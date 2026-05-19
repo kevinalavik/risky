@@ -5,6 +5,7 @@
 #include <stddef.h>
 
 bool uart_init(void);
+bool uart_is_ready(void);
 void uart_putc(char ch);
 void uart_puts(const char *s);
 char uart_getc(void);

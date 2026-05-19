@@ -2,30 +2,38 @@
 #define PLATFORM_GENERIC_CPU_H
 
 #include <stdint.h>
+#include <boot/req.h>
+#include <csr.h>
 
-void cpu_init_mappings(uint64_t hhdm_offset, uint64_t kernel_phys_base,
-					   uint64_t kernel_virt_base);
-uintptr_t phys_to_virt(uintptr_t phys_addr);
-bool cpu_map_mmio(uintptr_t phys_addr, uint64_t size);
+#define PHYS_TO_VIRT(phys_addr) \
+	((uintptr_t)(phys_addr) + (uintptr_t)hhdm_request.response->offset)
+
+#define VIRT_TO_PHYS(virt_addr) \
+	((uintptr_t)(virt_addr) - (uintptr_t)hhdm_request.response->offset)
+
+static inline uint64_t cpu_read_time(void)
+{
+	return csr_read(time);
+}
 
 static inline void mmio_write8(uintptr_t phys_addr, uint8_t value)
 {
-	*(volatile uint8_t *)phys_to_virt(phys_addr) = value;
+	*(volatile uint8_t *)PHYS_TO_VIRT(phys_addr) = value;
 }
 
 static inline uint8_t mmio_read8(uintptr_t phys_addr)
 {
-	return *(volatile uint8_t *)phys_to_virt(phys_addr);
+	return *(volatile uint8_t *)PHYS_TO_VIRT(phys_addr);
 }
 
 static inline void mmio_write32(uintptr_t phys_addr, uint32_t value)
 {
-	*(volatile uint32_t *)phys_to_virt(phys_addr) = value;
+	*(volatile uint32_t *)PHYS_TO_VIRT(phys_addr) = value;
 }
 
 static inline uint32_t mmio_read32(uintptr_t phys_addr)
 {
-	return *(volatile uint32_t *)phys_to_virt(phys_addr);
+	return *(volatile uint32_t *)PHYS_TO_VIRT(phys_addr);
 }
 
 static inline void hlt(void)

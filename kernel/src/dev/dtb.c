@@ -1,6 +1,7 @@
 #include <dev/dtb.h>
 #include <dev/fdt.h>
 #include <limine.h>
+#include <lib/printk.h>
 #include <lib/string.h>
 
 static struct fdt dtb_fdt;
@@ -26,10 +27,20 @@ bool dtb_init(const struct limine_dtb_response *response)
 	memset(&dtb_fdt, 0, sizeof(dtb_fdt));
 
 	if (response == NULL) {
+		klog("dtb: missing Limine dtb response\n");
+		return false;
+	}
+
+	if (response->dtb_ptr == NULL) {
+		klog("dtb: Limine dtb_ptr is NULL\n");
 		return false;
 	}
 
 	dtb_ready = fdt_init(&dtb_fdt, response->dtb_ptr);
+	if (!dtb_ready) {
+		klog("dtb: invalid fdt blob at %p\n", response->dtb_ptr);
+	}
+
 	return dtb_ready;
 }
 

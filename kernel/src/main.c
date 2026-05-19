@@ -9,12 +9,20 @@
 #include <dev/uart.h>
 #include <boot/req.h>
 #include <lib/printk.h>
+#include <lib/time.h>
+#include <mm/paging.h>
+#include <mm/pfndb.h>
+#include <mm/pmm.h>
+#include <sbi.h>
 
 static struct flanterm_context *g_ft_ctx;
 
 void printk_putc(char c)
 {
-	uart_putc(c);
+	if (uart_is_ready())
+		uart_putc(c);
+	else
+		sbi_legacy_console_putchar((int)c);
 
 	if (g_ft_ctx != NULL)
 		flanterm_write(g_ft_ctx, &c, 1);
@@ -22,19 +30,36 @@ void printk_putc(char c)
 
 void kmain(void)
 {
+	bool dtb_ok;
+
 	if (!LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision)) {
 		hlt();
 	}
 
-	if (hhdm_request.response != NULL &&
-		executable_address_request.response != NULL) {
-		cpu_init_mappings(hhdm_request.response->offset,
-						  executable_address_request.response->physical_base,
-						  executable_address_request.response->virtual_base);
+	ktime_init();
+	pfndb_init(memmap_request.response);
+	if (!pmm_init()) {
+		klog("boot: pmm_init failed\n");
+		hlt();
 	}
 
-	dtb_init(dtb_request.response);
-	uart_init();
+	if (!dtb_init(dtb_request.response))
+		klog("boot: dtb_init failed\n");
+
+	if (!paging_early_init()) {
+		klog("boot: paging_early_init failed\n");
+		hlt();
+	}
+
+	if (!uart_init()) {
+		klog("boot: uart_init failed\n");
+		hlt();
+	}
+
+	if (!paging_init()) {
+		klog("boot: paging_init failed\n");
+		hlt();
+	}
 
 	if (framebuffer_request.response == NULL ||
 		framebuffer_request.response->framebuffer_count < 1) {

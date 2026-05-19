@@ -15,6 +15,7 @@ HOST_LIBS :=
 QEMU_COMMON_FLAGS := \
 	-M $(PLATFORM) \
 	-cpu $(CPU) \
+	-serial stdio \
 	-device ramfb \
 	-device qemu-xhci \
 	-device usb-kbd \
@@ -40,7 +41,7 @@ run-hdd: edk2-ovmf $(IMAGE_NAME).hdd
 		$(QEMU_COMMON_FLAGS) \
 		-hda $(IMAGE_NAME).hdd \
 		$(QEMUFLAGS)
-
+		
 edk2-ovmf:
 	curl -L https://github.com/osdev0/edk2-ovmf-nightly/releases/latest/download/edk2-ovmf.tar.gz | gunzip | tar -xf -
 

@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <lib/printk.h>
+#include <lib/time.h>
 
 extern void printk_putc(char c);
 
@@ -22,6 +23,11 @@ struct printk_state {
 	int written;
 };
 
+static void emit_unsigned(struct printk_state *state, uint64_t value,
+						  unsigned int base, bool uppercase);
+static void emit_raw_unsigned(struct printk_state *state, uint64_t value,
+							  unsigned int base, bool uppercase);
+
 static void emit_raw_char(struct printk_state *state, char c)
 {
 	if (c == '\n') {
@@ -38,15 +44,23 @@ static void emit_raw_char(struct printk_state *state, char c)
 
 static void emit_log_prefix(struct printk_state *state)
 {
+	uint64_t uptime_ms;
+	uint64_t seconds;
+	uint64_t millis;
+
 	if (!state->prefix_enabled || !state->at_line_start)
 		return;
 
+	uptime_ms = ktime_get_ms();
+	seconds = uptime_ms / 1000U;
+	millis = uptime_ms % 1000U;
+
 	emit_raw_char(state, '[');
-	emit_raw_char(state, '0');
+	emit_raw_unsigned(state, seconds, 10U, false);
 	emit_raw_char(state, '.');
-	emit_raw_char(state, '0');
-	emit_raw_char(state, '0');
-	emit_raw_char(state, '0');
+	emit_raw_char(state, (char)('0' + (millis / 100U) % 10U));
+	emit_raw_char(state, (char)('0' + (millis / 10U) % 10U));
+	emit_raw_char(state, (char)('0' + millis % 10U));
 	emit_raw_char(state, ']');
 	emit_raw_char(state, ' ');
 	state->at_line_start = false;
@@ -73,6 +87,12 @@ static void emit_string(struct printk_state *state, const char *s)
 static void emit_unsigned(struct printk_state *state, uint64_t value,
 						  unsigned int base, bool uppercase)
 {
+	emit_raw_unsigned(state, value, base, uppercase);
+}
+
+static void emit_raw_unsigned(struct printk_state *state, uint64_t value,
+							  unsigned int base, bool uppercase)
+{
 	char buffer[sizeof(uint64_t) * 8];
 	const char *digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef";
 	size_t len = 0;
@@ -86,48 +106,48 @@ static void emit_unsigned(struct printk_state *state, uint64_t value,
 	} while (value != 0U);
 
 	while (len > 0)
-		emit_char(state, buffer[--len]);
+		emit_raw_char(state, buffer[--len]);
 }
 
-static uint64_t get_unsigned_arg(va_list args, enum printk_length length)
+static uint64_t get_unsigned_arg(va_list *args, enum printk_length length)
 {
 	switch (length) {
 	case PRINTK_LEN_CHAR:
-		return (unsigned char)va_arg(args, unsigned int);
+		return (unsigned char)va_arg(*args, unsigned int);
 	case PRINTK_LEN_SHORT:
-		return (unsigned short)va_arg(args, unsigned int);
+		return (unsigned short)va_arg(*args, unsigned int);
 	case PRINTK_LEN_LONG:
-		return va_arg(args, unsigned long);
+		return va_arg(*args, unsigned long);
 	case PRINTK_LEN_LLONG:
-		return va_arg(args, unsigned long long);
+		return va_arg(*args, unsigned long long);
 	case PRINTK_LEN_SIZE:
-		return va_arg(args, size_t);
+		return va_arg(*args, size_t);
 	case PRINTK_LEN_PTRDIFF:
-		return (uint64_t)va_arg(args, ptrdiff_t);
+		return (uint64_t)va_arg(*args, ptrdiff_t);
 	case PRINTK_LEN_DEFAULT:
 	default:
-		return va_arg(args, unsigned int);
+		return va_arg(*args, unsigned int);
 	}
 }
 
-static int64_t get_signed_arg(va_list args, enum printk_length length)
+static int64_t get_signed_arg(va_list *args, enum printk_length length)
 {
 	switch (length) {
 	case PRINTK_LEN_CHAR:
-		return (signed char)va_arg(args, int);
+		return (signed char)va_arg(*args, int);
 	case PRINTK_LEN_SHORT:
-		return (short)va_arg(args, int);
+		return (short)va_arg(*args, int);
 	case PRINTK_LEN_LONG:
-		return va_arg(args, long);
+		return va_arg(*args, long);
 	case PRINTK_LEN_LLONG:
-		return va_arg(args, long long);
+		return va_arg(*args, long long);
 	case PRINTK_LEN_SIZE:
-		return (int64_t)va_arg(args, ptrdiff_t);
+		return (int64_t)va_arg(*args, ptrdiff_t);
 	case PRINTK_LEN_PTRDIFF:
-		return va_arg(args, ptrdiff_t);
+		return va_arg(*args, ptrdiff_t);
 	case PRINTK_LEN_DEFAULT:
 	default:
-		return va_arg(args, int);
+		return va_arg(*args, int);
 	}
 }
 
@@ -190,7 +210,7 @@ static int vprintk_internal(bool prefix_enabled, const char *fmt, va_list args)
 			break;
 		case 'd':
 		case 'i': {
-			int64_t value = get_signed_arg(args, length);
+			int64_t value = get_signed_arg(&args, length);
 
 			if (value < 0) {
 				uint64_t magnitude = (uint64_t)(-(value + 1)) + 1U;
@@ -204,15 +224,15 @@ static int vprintk_internal(bool prefix_enabled, const char *fmt, va_list args)
 			break;
 		}
 		case 'u':
-			emit_unsigned(&state, get_unsigned_arg(args, length), 10U, false);
+			emit_unsigned(&state, get_unsigned_arg(&args, length), 10U, false);
 			fmt++;
 			break;
 		case 'x':
-			emit_unsigned(&state, get_unsigned_arg(args, length), 16U, false);
+			emit_unsigned(&state, get_unsigned_arg(&args, length), 16U, false);
 			fmt++;
 			break;
 		case 'X':
-			emit_unsigned(&state, get_unsigned_arg(args, length), 16U, true);
+			emit_unsigned(&state, get_unsigned_arg(&args, length), 16U, true);
 			fmt++;
 			break;
 		case 'p': {

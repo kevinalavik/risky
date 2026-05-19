@@ -1,6 +1,8 @@
 #include <dev/dtb.h>
 #include <dev/uart.h>
 #include <cpu.h>
+#include <lib/printk.h>
+#include <mm/paging.h>
 
 #define UART_RBR 0U
 #define UART_THR 0U
@@ -35,6 +37,11 @@ struct uart_port {
 
 static struct uart_port uart0;
 static bool uart_ready;
+
+bool uart_is_ready(void)
+{
+	return uart_ready;
+}
 
 static void uart_write_reg(uint32_t reg, uint8_t val)
 {
@@ -95,10 +102,14 @@ static bool uart_find_port(struct uart_port *port)
 	}
 
 	if (!found)
+		klog("uart: failed to find uart in dtb, using fallback\n");
+	if (!found)
 		return false;
 
-	if (!dtb_get_reg(&node, 0, &port->base, &size) || size == 0)
+	if (!dtb_get_reg(&node, 0, &port->base, &size) || size == 0) {
+		klog("uart: failed to read uart reg from dtb\n");
 		return false;
+	}
 
 	port->size = size;
 	port->reg_shift = 0;
@@ -106,8 +117,10 @@ static bool uart_find_port(struct uart_port *port)
 
 	(void)dtb_get_u32(&node, "reg-shift", &port->reg_shift);
 	if (dtb_get_u32(&node, "reg-io-width", &port->reg_io_width) &&
-		port->reg_io_width != 1U && port->reg_io_width != 4U)
+		port->reg_io_width != 1U && port->reg_io_width != 4U) {
+		klog("uart: unsupported reg-io-width=%u\n", port->reg_io_width);
 		return false;
+	}
 
 	return true;
 }
@@ -121,10 +134,15 @@ bool uart_init(void)
 		uart0.size = UART_QEMU_VIRT_SIZE;
 		uart0.reg_shift = 0;
 		uart0.reg_io_width = 1;
+		klog("uart: using qemu virt fallback uart at phys=0x%llx\n",
+			 (unsigned long long)uart0.base);
 	}
 
-	if (!cpu_map_mmio(uart0.base, uart0.size))
+	if (!paging_map_mmio(uart0.base, uart0.size)) {
+		klog("uart: failed to map mmio phys=0x%llx size=0x%llx\n",
+			 (unsigned long long)uart0.base, (unsigned long long)uart0.size);
 		return false;
+	}
 
 	uart_write_reg(UART_IER, 0x00);
 	uart_write_reg(UART_LCR, UART_LCR_DLAB);
@@ -133,6 +151,8 @@ bool uart_init(void)
 	uart_write_reg(UART_LCR, 0x03);
 	uart_write_reg(UART_FCR, 0x07);
 	uart_ready = true;
+	klog("uart: init ok phys=0x%llx shift=%u width=%u\n",
+		 (unsigned long long)uart0.base, uart0.reg_shift, uart0.reg_io_width);
 
 	while ((uart_read_reg(UART_LSR) & UART_LSR_RX_READY) != 0U)
 		(void)uart_read_reg(UART_RBR);
