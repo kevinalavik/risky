@@ -3,12 +3,23 @@ QEMUFLAGS := -m 2G
 
 override IMAGE_NAME := risky
 override TOOLCHAIN := llvm
+override PLATFORM := virt
+override CPU := rv64
 
 HOST_CC := cc
 HOST_CFLAGS := -g -O2 -pipe
 HOST_CPPFLAGS :=
 HOST_LDFLAGS :=
 HOST_LIBS :=
+
+QEMU_COMMON_FLAGS := \
+	-M $(PLATFORM) \
+	-cpu $(CPU) \
+	-device ramfb \
+	-device qemu-xhci \
+	-device usb-kbd \
+	-device usb-tablet \
+	-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-riscv64.fd,readonly=on
 
 .PHONY: all
 all: $(IMAGE_NAME).iso
@@ -19,26 +30,14 @@ all-hdd: $(IMAGE_NAME).hdd
 .PHONY: run
 run: edk2-ovmf $(IMAGE_NAME).iso
 	qemu-system-riscv64 \
-		-M virt \
-		-cpu rv64 \
-		-device ramfb \
-		-device qemu-xhci \
-		-device usb-kbd \
-		-device usb-tablet \
-		-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-riscv64.fd,readonly=on \
+		$(QEMU_COMMON_FLAGS) \
 		-cdrom $(IMAGE_NAME).iso \
 		$(QEMUFLAGS)
 
 .PHONY: run-hdd
 run-hdd: edk2-ovmf $(IMAGE_NAME).hdd
 	qemu-system-riscv64 \
-		-M virt \
-		-cpu rv64 \
-		-device ramfb \
-		-device qemu-xhci \
-		-device usb-kbd \
-		-device usb-tablet \
-		-drive if=pflash,unit=0,format=raw,file=edk2-ovmf/ovmf-code-riscv64.fd,readonly=on \
+		$(QEMU_COMMON_FLAGS) \
 		-hda $(IMAGE_NAME).hdd \
 		$(QEMUFLAGS)
 
@@ -60,7 +59,7 @@ kernel/.deps-obtained:
 
 .PHONY: kernel
 kernel: kernel/.deps-obtained
-	$(MAKE) -C kernel TOOLCHAIN=$(TOOLCHAIN)
+	$(MAKE) -C kernel TOOLCHAIN=$(TOOLCHAIN) PLATFORM=$(PLATFORM)
 
 $(IMAGE_NAME).iso: limine-binary/limine kernel
 	rm -rf iso_root

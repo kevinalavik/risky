@@ -46,6 +46,12 @@ clone_repo_commit \
     limine-protocol \
     80ef54bed402b8c0b672a707c1df4c532f3428ad
 
+clone_repo_commit \
+    https://github.com/mintsuki/flanterm.git \
+    flanterm \
+    dfa1922c0749faf64c4423a81b233a20c08a7db7
+
+
 touch .deps-obtained
 
 printf "\nDependencies obtained successfully.\n"

@@ -5,6 +5,7 @@ PREFIX := /usr/local
 
 TOOLCHAIN :=
 TOOLCHAIN_PREFIX :=
+
 ifneq ($(TOOLCHAIN),)
     ifeq ($(TOOLCHAIN_PREFIX),)
         TOOLCHAIN_PREFIX := $(TOOLCHAIN)-
@@ -24,6 +25,10 @@ ifeq ($(TOOLCHAIN),llvm)
     LD := ld.lld
 endif
 
+# Set this when invoking make:
+#   make PLATFORM=riscv64
+PLATFORM ?=
+
 CFLAGS := -g -O2 -pipe
 CPPFLAGS :=
 LDFLAGS :=
@@ -31,6 +36,10 @@ LDFLAGS :=
 ifneq ($(filter-out clean distclean,$(or $(MAKECMDGOALS),default)),)
     ifeq ($(wildcard .deps-obtained),)
         $(error Please run the ./get-deps script first)
+    endif
+
+    ifeq ($(PLATFORM),)
+        $(error PLATFORM must be set, e.g. make PLATFORM=riscv64)
     endif
 endif
 
@@ -51,7 +60,10 @@ override CFLAGS += \
 
 override CPPFLAGS := \
     -I src \
+    -I src/platform/generic \
+    -I src/platform/$(PLATFORM) \
     -I limine-protocol/include \
+    -I flanterm/src \
     -isystem freestnd-c-hdrs/include \
     $(CPPFLAGS) \
     -MMD \
@@ -61,10 +73,12 @@ ifeq ($(CC_IS_CLANG),1)
     override CC += \
         -target riscv64-unknown-none-elf
 endif
+
 override CFLAGS += \
     -march=rv64imac_zicsr_zifencei \
     -mabi=lp64 \
     -mno-relax
+
 override LDFLAGS += \
     -m elf64lriscv \
     --no-relax
@@ -76,9 +90,16 @@ override LDFLAGS += \
     --gc-sections \
     -T linker.ld
 
-override SRCFILES := $(shell find -L src cc-runtime/src -type f 2>/dev/null | LC_ALL=C sort)
+override SRCFILES := $(shell { \
+    find -L src cc-runtime/src -type f ! -path 'src/platform/*' 2>/dev/null; \
+    find -L src/platform/generic -type f 2>/dev/null; \
+    find -L src/platform/$(PLATFORM) -type f 2>/dev/null; \
+    find -L flanterm -type f 2>/dev/null; \
+} | LC_ALL=C sort -u)
+
 override CFILES := $(filter %.c,$(SRCFILES))
 override ASFILES := $(filter %.S,$(SRCFILES))
+
 override OBJ := $(addprefix obj/,$(CFILES:.c=.c.o) $(ASFILES:.S=.S.o))
 override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 
@@ -86,6 +107,7 @@ override HEADER_DEPS := $(addprefix obj/,$(CFILES:.c=.c.d) $(ASFILES:.S=.S.d))
 all: bin/$(OUTPUT)
 
 -include $(HEADER_DEPS)
+
 bin/$(OUTPUT): GNUmakefile linker.ld $(OBJ)
 	mkdir -p "$(dir $@)"
 	$(LD) $(LDFLAGS) $(OBJ) -o $@

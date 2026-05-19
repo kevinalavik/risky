@@ -1,54 +1,58 @@
-#include <stdint.h>
-#include <stddef.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <limine.h>
+#include <flanterm.h>
+#include <flanterm_backends/fb.h>
+#include <cpu.h>
+#include <dev/dtb.h>
+#include <dev/uart.h>
+#include <boot/req.h>
+#include <lib/printk.h>
 
-__attribute__((used, section(".limine_requests"))) static volatile uint64_t
-	limine_base_revision[] = LIMINE_BASE_REVISION(6);
+static struct flanterm_context *g_ft_ctx;
 
-__attribute__((
-	used,
-	section(
-		".limine_requests"))) static volatile struct limine_framebuffer_request
-	framebuffer_request = { .id = LIMINE_FRAMEBUFFER_REQUEST_ID,
-							.revision = 0 };
-
-__attribute__((used,
-			   section(".limine_requests_start"))) static volatile uint64_t
-	limine_requests_start_marker[] = LIMINE_REQUESTS_START_MARKER;
-
-__attribute__((used, section(".limine_requests_end"))) static volatile uint64_t
-	limine_requests_end_marker[] = LIMINE_REQUESTS_END_MARKER;
-
-static void hcf(void)
+void printk_putc(char c)
 {
-	for (;;) {
-		asm("wfi");
-	}
+	uart_putc(c);
+
+	if (g_ft_ctx != NULL)
+		flanterm_write(g_ft_ctx, &c, 1);
 }
 
 void kmain(void)
 {
-	if (LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision) == false) {
-		hcf();
+	if (!LIMINE_BASE_REVISION_SUPPORTED(limine_base_revision)) {
+		hlt();
 	}
+
+	if (hhdm_request.response != NULL &&
+		executable_address_request.response != NULL) {
+		cpu_init_mappings(hhdm_request.response->offset,
+						  executable_address_request.response->physical_base,
+						  executable_address_request.response->virtual_base);
+	}
+
+	dtb_init(dtb_request.response);
+	uart_init();
 
 	if (framebuffer_request.response == NULL ||
 		framebuffer_request.response->framebuffer_count < 1) {
-		hcf();
+		klog("early: failed to get framebuffer, no ramfb?\n");
+	} else {
+		struct limine_framebuffer *fb =
+			framebuffer_request.response->framebuffers[0];
+
+		g_ft_ctx = flanterm_fb_init(
+			NULL, NULL, fb->address, fb->width, fb->height, fb->pitch,
+			fb->red_mask_size, fb->red_mask_shift, fb->green_mask_size,
+			fb->green_mask_shift, fb->blue_mask_size, fb->blue_mask_shift, NULL,
+			NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 1, 0, 0, 0, 0);
+
+		if (g_ft_ctx == NULL)
+			klog("early: failed to initialize flanterm\n");
 	}
 
-	struct limine_framebuffer *framebuffer =
-		framebuffer_request.response->framebuffers[0];
-
-	volatile uint32_t *fb_ptr = framebuffer->address;
-	for (size_t y = 0; y < framebuffer->height; y++) {
-		for (size_t x = 0; x < framebuffer->width; x++) {
-			uint32_t nX = x * 255 / framebuffer->width;
-			uint32_t nY = y * 255 / framebuffer->height;
-			fb_ptr[y * (framebuffer->pitch / 4) + x] = (nY << 8) | nX;
-		}
-	}
-
-	hcf();
+	klog("early: Hello, World!\n");
+	hlt();
 }
