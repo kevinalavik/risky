@@ -1,1 +1,4 @@
-build
+/limine-binary
+/edk2-ovmf
+*.iso
+*.hdd
