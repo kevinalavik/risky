@@ -4,8 +4,8 @@
 #include <machine/uart.h>
 #include <sys/types.h>
 
-#define FRAMEBUFFER_WIDTH 640UL
-#define FRAMEBUFFER_HEIGHT 480UL
+#define FRAMEBUFFER_WIDTH 1024UL
+#define FRAMEBUFFER_HEIGHT 768UL
 #define FRAMEBUFFER_PITCH (FRAMEBUFFER_WIDTH * sizeof(uint32_t))
 
 static uint32_t framebuffer_storage[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT]
