@@ -34,54 +34,65 @@
 #define SIE_STIE (1UL << 5)
 #define SIE_SSIE (1UL << 1)
 
-#define csr_read(csr) ({ \
-    uint64_t __val; \
-    __asm__ volatile("csrr %0, " #csr : "=r"(__val)); \
-    __val; \
-})
+#define csr_read(csr)                                     \
+	({                                                    \
+		uint64_t __val;                                   \
+		__asm__ volatile("csrr %0, " #csr : "=r"(__val)); \
+		__val;                                            \
+	})
 
-#define csr_write(csr, val) do { \
-    __asm__ volatile("csrw " #csr ", %0" : : "r"(val)); \
-} while (0)
+#define csr_write(csr, val)                                 \
+	do {                                                    \
+		__asm__ volatile("csrw " #csr ", %0" : : "r"(val)); \
+	} while (0)
 
-#define csr_set(csr, val) do { \
-    __asm__ volatile("csrs " #csr ", %0" : : "r"(val)); \
-} while (0)
+#define csr_set(csr, val)                                   \
+	do {                                                    \
+		__asm__ volatile("csrs " #csr ", %0" : : "r"(val)); \
+	} while (0)
 
-#define csr_clear(csr, val) do { \
-    __asm__ volatile("csrc " #csr ", %0" : : "r"(val)); \
-} while (0)
+#define csr_clear(csr, val)                                 \
+	do {                                                    \
+		__asm__ volatile("csrc " #csr ", %0" : : "r"(val)); \
+	} while (0)
 
-static inline uint64_t csr_read_time(void) {
-    uint64_t value;
-    __asm__ volatile("csrr %0, time" : "=r"(value));
-    return value;
+static inline uint64_t csr_read_time(void)
+{
+	uint64_t value;
+	__asm__ volatile("csrr %0, time" : "=r"(value));
+	return value;
 }
 
-static inline uint64_t csr_read_mhartid(void) {
-    uint64_t value;
-    __asm__ volatile("csrr %0, mhartid" : "=r"(value));
-    return value;
+static inline uint64_t csr_read_mhartid(void)
+{
+	uint64_t value;
+	__asm__ volatile("csrr %0, mhartid" : "=r"(value));
+	return value;
 }
 
-static inline void fence(void) {
-    __asm__ volatile("fence" ::: "memory");
+static inline void fence(void)
+{
+	__asm__ volatile("fence" ::: "memory");
 }
 
-static inline void fence_i(void) {
-    __asm__ volatile("fence.i" ::: "memory");
+static inline void fence_i(void)
+{
+	__asm__ volatile("fence.i" ::: "memory");
 }
 
-static inline void wfi(void) {
-    __asm__ volatile("wfi");
+static inline void wfi(void)
+{
+	__asm__ volatile("wfi");
 }
 
-static inline void mret(void) {
-    __asm__ volatile("mret");
+static inline void mret(void)
+{
+	__asm__ volatile("mret");
 }
 
-static inline void sret(void) {
-    __asm__ volatile("sret");
+static inline void sret(void)
+{
+	__asm__ volatile("sret");
 }
 
 #endif // ARCH_CSR_H

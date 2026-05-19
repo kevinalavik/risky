@@ -12,52 +12,51 @@
 #define FRAMEBUFFER_PITCH (FRAMEBUFFER_WIDTH * sizeof(uint32_t))
 
 static uint32_t framebuffer_storage[FRAMEBUFFER_WIDTH * FRAMEBUFFER_HEIGHT]
-    __attribute__((aligned(4096)));
+	__attribute__((aligned(4096)));
 
 static struct framebuffer boot_framebuffer = {
-    .framebuffer = framebuffer_storage,
-    .width = FRAMEBUFFER_WIDTH,
-    .height = FRAMEBUFFER_HEIGHT,
-    .pitch = FRAMEBUFFER_PITCH,
-    .red_mask_size = 8,
-    .red_mask_shift = 16,
-    .green_mask_size = 8,
-    .green_mask_shift = 8,
-    .blue_mask_size = 8,
-    .blue_mask_shift = 0,
+	.framebuffer = framebuffer_storage,
+	.width = FRAMEBUFFER_WIDTH,
+	.height = FRAMEBUFFER_HEIGHT,
+	.pitch = FRAMEBUFFER_PITCH,
+	.red_mask_size = 8,
+	.red_mask_shift = 16,
+	.green_mask_size = 8,
+	.green_mask_shift = 8,
+	.blue_mask_size = 8,
+	.blue_mask_shift = 0,
 };
 
-void kmain(uint64_t hartid, uint64_t dtb_pa) {
-  struct fdt fdt;
+void kmain(uint64_t hartid, uint64_t dtb_pa)
+{
+	fdt_global_init((const void *)dtb_pa);
+	(void)hartid;
 
-  (void)hartid;
+	uart_init();
+	time_init();
+	kputc('\n');
 
-  uart_init();
-  time_init(fdt_init(&fdt, (const void *)dtb_pa) ? &fdt : 0);
+	if (ramfb_configure(&boot_framebuffer) == 0) {
+		struct flanterm_context *terminal = flanterm_fb_init(
+			0, 0, boot_framebuffer.framebuffer, boot_framebuffer.width,
+			boot_framebuffer.height, boot_framebuffer.pitch,
+			boot_framebuffer.red_mask_size, boot_framebuffer.red_mask_shift,
+			boot_framebuffer.green_mask_size, boot_framebuffer.green_mask_shift,
+			boot_framebuffer.blue_mask_size, boot_framebuffer.blue_mask_shift,
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, FLANTERM_FB_ROTATE_0);
 
-  kputc('\n');
+		if (terminal != 0) {
+			printk_set_terminal(terminal);
+		} else {
+			klog("framebuffer terminal unavailable");
+		}
+	} else {
+		klog("framebuffer unavailable");
+	}
 
-  if (ramfb_configure(&boot_framebuffer) == 0) {
-    struct flanterm_context *terminal = flanterm_fb_init(
-        0, 0, boot_framebuffer.framebuffer, boot_framebuffer.width,
-        boot_framebuffer.height, boot_framebuffer.pitch,
-        boot_framebuffer.red_mask_size, boot_framebuffer.red_mask_shift,
-        boot_framebuffer.green_mask_size, boot_framebuffer.green_mask_shift,
-        boot_framebuffer.blue_mask_size, boot_framebuffer.blue_mask_shift, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, FLANTERM_FB_ROTATE_0);
+	klog("welcome to risky");
 
-    if (terminal != 0) {
-      printk_set_terminal(terminal);
-    } else {
-      klog("framebuffer terminal unavailable");
-    }
-  } else {
-    klog("framebuffer unavailable");
-  }
-
-  klog("welcome to risky");
-
-  for (;;) {
-    __asm__ volatile("wfi");
-  }
+	for (;;) {
+		__asm__ volatile("wfi");
+	}
 }

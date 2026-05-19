@@ -8,9 +8,11 @@ RISCV64_DIR := arch/riscv64
 DEV_DIR := dev
 CORE_DIR := core
 DT_DIR := dt
+MM_DIR := mm
 INCLUDE_DIR := include
 MACHINE_DIR := machine/$(PLATFORM)
 ARCH_INCLUDE_DIR := $(RISCV64_DIR)/include
+MM_INCLUDE_DIR := $(MM_DIR)/include
 LIB_DIR := lib
 FLANTERM_ROOT := ../third_party/flanterm
 FLANTERM_SRC_DIR := $(FLANTERM_ROOT)/src
@@ -31,6 +33,7 @@ CFLAGS := \
 	-fno-omit-frame-pointer \
 	-I $(INCLUDE_DIR) \
 	-I $(ARCH_INCLUDE_DIR) \
+	-I $(MM_INCLUDE_DIR) \
 	-I $(FLANTERM_SRC_DIR) \
 	-I $(FLANTERM_SRC_DIR)/flanterm_backends \
 	-nostdinc \
@@ -59,6 +62,8 @@ OBJS := \
 	$(BUILD_DIR)/$(DT_DIR)/fdt.o \
 	$(BUILD_DIR)/$(CORE_DIR)/printk.o \
 	$(BUILD_DIR)/$(CORE_DIR)/time.o \
+	$(BUILD_DIR)/$(MM_DIR)/pfn.o \
+	$(BUILD_DIR)/$(MM_DIR)/pmm.o \
 	$(BUILD_DIR)/$(LIB_DIR)/string.o \
 	$(BUILD_DIR)/$(DEV_DIR)/fw_cfg/fw_cfg.o \
 	$(BUILD_DIR)/$(DEV_DIR)/ramfb/ramfb.o \
@@ -96,6 +101,7 @@ bin: $(KERNEL_ELF)
 		exit 1; \
 	}
 	llvm-objcopy -O binary $(KERNEL_ELF) $(KERNEL_BIN)
+
 
 clean:
 	rm -rf $(BUILD_DIR)

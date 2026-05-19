@@ -9,11 +9,14 @@
 
 static volatile uint8_t *const uart0 = (volatile uint8_t *)UART0_BASE;
 
-void uart_init(void) {}
+void uart_init(void)
+{
+}
 
-void uart_putchar(char ch) {
-  while ((mmio_read8((uint64_t)&uart0[UART_LSR]) & UART_LSR_THRE) == 0) {
-  }
+void uart_putchar(char ch)
+{
+	while ((mmio_read8((uint64_t)&uart0[UART_LSR]) & UART_LSR_THRE) == 0) {
+	}
 
-  mmio_write8((uint64_t)&uart0[UART_THR], (uint8_t)ch);
+	mmio_write8((uint64_t)&uart0[UART_THR], (uint8_t)ch);
 }

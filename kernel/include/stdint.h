@@ -10,6 +10,6 @@ typedef long intptr_t;
 #define UINT16_MAX ((uint16_t)0xffffU)
 #define UINT32_MAX ((uint32_t)0xffffffffU)
 #define UINT64_MAX ((uint64_t)0xffffffffffffffffUL)
-#define SIZE_MAX ((size_t)-1)
+#define SIZE_MAX ((size_t) - 1)
 
 #endif // STDINT_H

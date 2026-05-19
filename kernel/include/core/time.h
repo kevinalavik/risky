@@ -5,11 +5,11 @@
 #include <sys/types.h>
 
 struct time_uptime {
-  uint64_t seconds;
-  uint32_t milliseconds;
+	uint64_t seconds;
+	uint32_t milliseconds;
 };
 
-void time_init(const struct fdt *fdt);
+void time_init(void);
 uint64_t time_now_ticks(void);
 uint64_t time_frequency_hz(void);
 void time_get_uptime(struct time_uptime *uptime);
