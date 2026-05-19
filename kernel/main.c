@@ -1,4 +1,7 @@
+#include <core/printk.h>
+#include <core/time.h>
 #include <dev/ramfb.h>
+#include <dt/fdt.h>
 #include <fb.h>
 #include <flanterm.h>
 #include <machine/uart.h>
@@ -24,24 +27,15 @@ static struct framebuffer boot_framebuffer = {
     .blue_mask_shift = 0,
 };
 
-static void uart_puts(const char *str) {
-  while (*str != '\0') {
-    if (*str == '\n') {
-      uart_putchar('\r');
-    }
-
-    uart_putchar(*str++);
-  }
-}
-
 void kmain(uint64_t hartid, uint64_t dtb_pa) {
+  struct fdt fdt;
+
   (void)hartid;
-  (void)dtb_pa;
 
   uart_init();
+  time_init(fdt_init(&fdt, (const void *)dtb_pa) ? &fdt : 0);
 
-  uart_puts("\n");
-  uart_puts("welcome to risky\n");
+  kputc('\n');
 
   if (ramfb_configure(&boot_framebuffer) == 0) {
     struct flanterm_context *terminal = flanterm_fb_init(
@@ -53,14 +47,15 @@ void kmain(uint64_t hartid, uint64_t dtb_pa) {
         0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, FLANTERM_FB_ROTATE_0);
 
     if (terminal != 0) {
-      static const char hello[] = "Hello via ramfb!\r\n";
-      flanterm_write(terminal, hello, sizeof(hello) - 1);
+      printk_set_terminal(terminal);
     } else {
-      uart_puts("framebuffer terminal unavailable\n");
+      klog("framebuffer terminal unavailable");
     }
   } else {
-    uart_puts("framebuffer unavailable\n");
+    klog("framebuffer unavailable");
   }
+
+  klog("welcome to risky");
 
   for (;;) {
     __asm__ volatile("wfi");

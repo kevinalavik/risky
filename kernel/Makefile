@@ -6,6 +6,8 @@ LD := ld.lld
 
 RISCV64_DIR := arch/riscv64
 DEV_DIR := dev
+CORE_DIR := core
+DT_DIR := dt
 INCLUDE_DIR := include
 MACHINE_DIR := machine/$(PLATFORM)
 ARCH_INCLUDE_DIR := $(RISCV64_DIR)/include
@@ -54,6 +56,9 @@ KERNEL_BIN := $(BUILD_DIR)/kernel.bin
 OBJS := \
 	$(BUILD_DIR)/$(RISCV64_DIR)/boot.o \
 	$(BUILD_DIR)/main.o \
+	$(BUILD_DIR)/$(DT_DIR)/fdt.o \
+	$(BUILD_DIR)/$(CORE_DIR)/printk.o \
+	$(BUILD_DIR)/$(CORE_DIR)/time.o \
 	$(BUILD_DIR)/$(LIB_DIR)/string.o \
 	$(BUILD_DIR)/$(DEV_DIR)/fw_cfg/fw_cfg.o \
 	$(BUILD_DIR)/$(DEV_DIR)/ramfb/ramfb.o \
