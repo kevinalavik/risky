@@ -13,6 +13,7 @@
 #include <mm/pfndb.h>
 #include <mm/pmm.h>
 #include <sbi.h>
+#include <trap.h>
 
 static struct flanterm_context *g_ft_ctx;
 
@@ -80,5 +81,9 @@ void kmain(void)
 	klog("test: allocated single page: %p", a);
 	*a = 42;
 	klog("test: value after write: %d", *a);
+
+	trap_init();
+	klog("early: setup trap handler");
+
 	hlt();
 }

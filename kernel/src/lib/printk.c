@@ -24,7 +24,9 @@ struct printk_state {
 };
 
 static void emit_unsigned(struct printk_state *state, uint64_t value,
-						  unsigned int base, bool uppercase);
+						  unsigned int base, bool uppercase, unsigned int width,
+						  char pad);
+
 static void emit_raw_unsigned(struct printk_state *state, uint64_t value,
 							  unsigned int base, bool uppercase);
 
@@ -84,10 +86,50 @@ static void emit_string(struct printk_state *state, const char *s)
 		emit_char(state, *s++);
 }
 
-static void emit_unsigned(struct printk_state *state, uint64_t value,
-						  unsigned int base, bool uppercase)
+static void emit_padded_string(struct printk_state *state, const char *s,
+							   unsigned int width, char pad)
 {
-	emit_raw_unsigned(state, value, base, uppercase);
+	size_t len = 0;
+	const char *p;
+
+	if (s == NULL)
+		s = "(null)";
+
+	for (p = s; *p != '\0'; p++)
+		len++;
+
+	while (len < width) {
+		emit_char(state, pad);
+		width--;
+	}
+
+	while (*s != '\0')
+		emit_char(state, *s++);
+}
+
+static void emit_unsigned(struct printk_state *state, uint64_t value,
+						  unsigned int base, bool uppercase, unsigned int width,
+						  char pad)
+{
+	char buffer[sizeof(uint64_t) * 8];
+	const char *digits = uppercase ? "0123456789ABCDEF" : "0123456789abcdef";
+	size_t len = 0;
+
+	if (base < 2U || base > 16U)
+		return;
+
+	do {
+		buffer[len++] = digits[value % base];
+		value /= base;
+	} while (value != 0U);
+
+	while (len < width) {
+		emit_char(state, pad);
+		width--;
+	}
+
+	while (len > 0)
+		emit_char(state, buffer[--len]);
 }
 
 static void emit_raw_unsigned(struct printk_state *state, uint64_t value,
@@ -161,6 +203,8 @@ static int vprintk_internal(bool prefix_enabled, const char *fmt, va_list args)
 
 	while (*fmt != '\0') {
 		enum printk_length length = PRINTK_LEN_DEFAULT;
+		char pad = ' ';
+		unsigned int width = 0;
 
 		if (*fmt != '%') {
 			emit_char(&state, *fmt++);
@@ -170,6 +214,16 @@ static int vprintk_internal(bool prefix_enabled, const char *fmt, va_list args)
 		fmt++;
 		if (*fmt == '\0')
 			break;
+
+		if (*fmt == '0') {
+			pad = '0';
+			fmt++;
+		}
+
+		while (*fmt >= '0' && *fmt <= '9') {
+			width = width * 10U + (unsigned int)(*fmt - '0');
+			fmt++;
+		}
 
 		if (*fmt == 'h') {
 			fmt++;
@@ -200,49 +254,62 @@ static int vprintk_internal(bool prefix_enabled, const char *fmt, va_list args)
 			emit_char(&state, '%');
 			fmt++;
 			break;
+
 		case 'c':
 			emit_char(&state, (char)va_arg(args, int));
 			fmt++;
 			break;
+
 		case 's':
-			emit_string(&state, va_arg(args, const char *));
+			emit_padded_string(&state, va_arg(args, const char *), width, pad);
 			fmt++;
 			break;
+
 		case 'd':
 		case 'i': {
 			int64_t value = get_signed_arg(&args, length);
 
 			if (value < 0) {
 				uint64_t magnitude = (uint64_t)(-(value + 1)) + 1U;
+
 				emit_char(&state, '-');
-				emit_unsigned(&state, magnitude, 10U, false);
+				emit_unsigned(&state, magnitude, 10U, false, width, pad);
 			} else {
-				emit_unsigned(&state, (uint64_t)value, 10U, false);
+				emit_unsigned(&state, (uint64_t)value, 10U, false, width, pad);
 			}
 
 			fmt++;
 			break;
 		}
+
 		case 'u':
-			emit_unsigned(&state, get_unsigned_arg(&args, length), 10U, false);
+			emit_unsigned(&state, get_unsigned_arg(&args, length), 10U, false,
+						  width, pad);
 			fmt++;
 			break;
+
 		case 'x':
-			emit_unsigned(&state, get_unsigned_arg(&args, length), 16U, false);
+			emit_unsigned(&state, get_unsigned_arg(&args, length), 16U, false,
+						  width, pad);
 			fmt++;
 			break;
+
 		case 'X':
-			emit_unsigned(&state, get_unsigned_arg(&args, length), 16U, true);
+			emit_unsigned(&state, get_unsigned_arg(&args, length), 16U, true,
+						  width, pad);
 			fmt++;
 			break;
+
 		case 'p': {
 			uintptr_t value = (uintptr_t)va_arg(args, void *);
 
 			emit_string(&state, "0x");
-			emit_unsigned(&state, (uint64_t)value, 16U, false);
+			emit_unsigned(&state, (uint64_t)value, 16U, false,
+						  sizeof(uintptr_t) * 2U, '0');
 			fmt++;
 			break;
 		}
+
 		default:
 			emit_char(&state, '%');
 			emit_char(&state, *fmt++);
@@ -272,7 +339,12 @@ int kprintf(const char *fmt, ...)
 
 int vklog(const char *fmt, va_list args)
 {
-	return vprintk_internal(true, fmt, args) + kprintf("\n");
+	int written;
+
+	written = vprintk_internal(true, fmt, args);
+	written += kprintf("\n");
+
+	return written;
 }
 
 int klog(const char *fmt, ...)
