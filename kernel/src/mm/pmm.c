@@ -3,6 +3,7 @@
 #include <mm/page.h>
 #include <mm/pfndb.h>
 #include <mm/pmm.h>
+#include <cpu.h>
 
 struct pmm_free_list {
 	page_t *head;
@@ -129,7 +130,42 @@ bool pmm_is_ready(void)
 	return g_pmm_ready;
 }
 
-page_t *pmm_alloc(uint8_t order)
+void *pmm_alloc(uint8_t order)
+{
+	if (!g_pmm_ready)
+		return NULL;
+
+	if (order >= PMM_MAX_ORDER) {
+		klog("pmm: alloc order %u out of range", order);
+		return NULL;
+	}
+
+	for (uint8_t current = order; current < PMM_MAX_ORDER; current++) {
+		page_t *page = g_free_lists[current].head;
+
+		if (page == NULL)
+			continue;
+
+		pmm_list_remove(current, page);
+		while (current > order) {
+			page_t *buddy;
+
+			current--;
+			buddy = pfn_to_page(page_to_pfn(page) + (1ULL << current));
+			pmm_prepare_page(buddy, PAGE_FREE, current);
+			pmm_list_push(current, buddy);
+		}
+
+		pmm_prepare_page(page, PAGE_USED, order);
+		g_free_pages -= 1ULL << order;
+		return (void *)PHYS_TO_VIRT(page_to_phys(page));
+	}
+
+	klog("pmm: alloc failed for order %u", order);
+	return NULL;
+}
+
+page_t *page_alloc(uint8_t order)
 {
 	if (!g_pmm_ready)
 		return NULL;
@@ -164,20 +200,21 @@ page_t *pmm_alloc(uint8_t order)
 	return NULL;
 }
 
-page_t *pmm_alloc_page(void)
-{
-	return pmm_alloc(0);
-}
-
-void pmm_free(page_t *page)
+void pmm_free(void *ptr)
 {
 	if (!g_pmm_ready) {
 		klog("pmm: refusing free before init");
 		return;
 	}
 
+	if (ptr == NULL) {
+		klog("pmm: ignoring free of NULL");
+		return;
+	}
+
+	page_t *page = phys_to_page(VIRT_TO_PHYS((uint64_t)ptr));
 	if (page == NULL) {
-		klog("pmm: ignoring free of NULL page");
+		klog("pmm: free of invalid pointer %p", ptr);
 		return;
 	}
 

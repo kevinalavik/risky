@@ -77,13 +77,22 @@ void kmain(void)
 	}
 
 	klog("early: Hello, World!");
-	int *a = pmm_alloc(1);
+	int *a = pmm_alloc(0);
 	klog("test: allocated single page: %p", a);
 	*a = 42;
 	klog("test: value after write: %d", *a);
+	pmm_free(a);
 
 	trap_init();
 	klog("early: setup trap handler");
+
+	if (mp_request.response == NULL) {
+		klog("early: failed to get mp info");
+		hlt();
+	}
+
+	struct limine_mp_response *mp = mp_request.response;
+	klog("early: CPU count=%d, bsp hartid=%d", mp->cpu_count, mp->bsp_hartid);
 
 	hlt();
 }

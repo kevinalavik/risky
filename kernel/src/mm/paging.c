@@ -170,7 +170,7 @@ static uint64_t *paging_alloc_table(void)
 	uint64_t *table;
 	page_t *page;
 
-	page = pmm_is_ready() ? pmm_alloc_page() : NULL;
+	page = pmm_is_ready() ? page_alloc(0) : NULL;
 	if (page != NULL) {
 		phys_addr = page_to_phys(page);
 		table = (uint64_t *)PHYS_TO_VIRT(phys_addr);

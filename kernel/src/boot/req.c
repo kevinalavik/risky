@@ -45,6 +45,14 @@ __attribute__((
 		.revision = 0,
 	};
 
+__attribute__((
+	used,
+	section(
+		".limine_requests"))) volatile struct limine_mp_request mp_request = {
+	.id = LIMINE_MP_REQUEST_ID,
+	.revision = 0,
+};
+
 __attribute__((used, section(".limine_requests_start"))) volatile uint64_t
 	limine_requests_start_marker[] = LIMINE_REQUESTS_START_MARKER;
 

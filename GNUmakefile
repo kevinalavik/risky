@@ -15,6 +15,7 @@ HOST_LIBS :=
 QEMU_COMMON_FLAGS := \
 	-M $(PLATFORM) \
 	-cpu $(CPU) \
+	-smp 4 \
 	-serial stdio \
 	-device ramfb \
 	-device qemu-xhci \

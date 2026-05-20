@@ -9,9 +9,9 @@
 
 bool pmm_init(void);
 bool pmm_is_ready(void);
-page_t *pmm_alloc(uint8_t order);
-page_t *pmm_alloc_page(void);
-void pmm_free(page_t *page);
+void *pmm_alloc(uint8_t order);
+page_t *page_alloc(uint8_t order);
+void pmm_free(void *ptr);
 uint64_t pmm_free_pages(void);
 uint64_t pmm_total_pages(void);
 
